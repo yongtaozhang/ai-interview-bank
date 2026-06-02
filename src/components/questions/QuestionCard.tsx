@@ -1,5 +1,5 @@
 import { ArrowRight } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import type { InterviewQuestion } from '../../types/question'
 import QuestionMeta from './QuestionMeta'
 
@@ -8,10 +8,12 @@ interface QuestionCardProps {
 }
 
 export default function QuestionCard({ question }: QuestionCardProps) {
+  const location = useLocation()
+
   return (
     <Link
       className="group block h-full rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-      to={`/questions/${question.id}`}
+      to={{ pathname: `/questions/${question.id}`, search: location.search }}
     >
       <QuestionMeta question={question} />
       <h2 className="mt-4 text-lg font-semibold leading-7 text-slate-950">{question.title}</h2>

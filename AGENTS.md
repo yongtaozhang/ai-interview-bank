@@ -48,3 +48,17 @@ Do not implement features outside the MVP scope unless explicitly requested.
 - Extract reusable UI components.
 - Prefer clear names over clever abstractions.
 - Run build before final response.
+
+## Content Skill
+
+when adding or modifying interview questions, always follow:
+
+- `skills/interview-handbook-content.md`
+
+Before changing `src/data/questions.ts`, read this skill first.
+
+## Related Specs
+
+When adding code for interview questions, also follow:
+
+- `specs/08-code-answer-spec.md`

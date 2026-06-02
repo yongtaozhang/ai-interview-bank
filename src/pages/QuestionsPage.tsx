@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import EmptyState from '../components/common/EmptyState'
 import FilterBar from '../components/filters/FilterBar'
 import QuestionList from '../components/questions/QuestionList'
 import { questions } from '../data/questions'
 import { useQuestionSearch } from '../hooks/useQuestionSearch'
-import type { QuestionCategory } from '../types/question'
+import type { QuestionCategory, QuestionDifficulty, QuestionFrequency } from '../types/question'
 import {
   defaultQuestionFilters,
   hasActiveFilters as getHasActiveFilters,
@@ -12,19 +13,56 @@ import {
 } from '../utils/questionFilters'
 
 export default function QuestionsPage() {
-  const [keyword, setKeyword] = useState('')
-  const [filters, setFilters] = useState<QuestionFilters>(defaultQuestionFilters)
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const categories = useMemo(
     () => Array.from(new Set(questions.map((question) => question.category))) as QuestionCategory[],
     [],
   )
+  const keyword = searchParams.get('q') ?? ''
+  const filters = useMemo<QuestionFilters>(() => {
+    const category = searchParams.get('category')
+    const difficulty = searchParams.get('difficulty')
+    const frequency = searchParams.get('frequency')
+
+    return {
+      category: categories.includes(category as QuestionCategory)
+        ? (category as QuestionCategory)
+        : defaultQuestionFilters.category,
+      difficulty: isQuestionDifficulty(difficulty)
+        ? difficulty
+        : defaultQuestionFilters.difficulty,
+      frequency: isQuestionFrequency(frequency) ? frequency : defaultQuestionFilters.frequency,
+    }
+  }, [categories, searchParams])
   const filteredQuestions = useQuestionSearch(questions, filters, keyword)
   const hasActiveFilters = getHasActiveFilters(filters, keyword)
 
+  function updateSearchParams(nextKeyword: string, nextFilters: QuestionFilters) {
+    const nextSearchParams = new URLSearchParams()
+    const trimmedKeyword = nextKeyword.trim()
+
+    if (trimmedKeyword) {
+      nextSearchParams.set('q', trimmedKeyword)
+    }
+
+    if (nextFilters.category !== 'all') {
+      nextSearchParams.set('category', nextFilters.category)
+    }
+
+    if (nextFilters.difficulty !== 'all') {
+      nextSearchParams.set('difficulty', nextFilters.difficulty)
+    }
+
+    if (nextFilters.frequency !== 'all') {
+      nextSearchParams.set('frequency', nextFilters.frequency)
+    }
+
+    setSearchParams(nextSearchParams, { replace: true })
+  }
+
   function resetFilters() {
-    setKeyword('')
-    setFilters(defaultQuestionFilters)
+    setSearchParams({}, { replace: true })
   }
 
   return (
@@ -41,8 +79,8 @@ export default function QuestionsPage() {
         filters={filters}
         hasActiveFilters={hasActiveFilters}
         keyword={keyword}
-        onFiltersChange={setFilters}
-        onKeywordChange={setKeyword}
+        onFiltersChange={(nextFilters) => updateSearchParams(keyword, nextFilters)}
+        onKeywordChange={(nextKeyword) => updateSearchParams(nextKeyword, filters)}
         onReset={resetFilters}
       />
 
@@ -68,4 +106,12 @@ export default function QuestionsPage() {
       )}
     </section>
   )
+}
+
+function isQuestionDifficulty(value: string | null): value is QuestionDifficulty {
+  return value === 'basic' || value === 'intermediate' || value === 'advanced'
+}
+
+function isQuestionFrequency(value: string | null): value is QuestionFrequency {
+  return value === 'low' || value === 'medium' || value === 'high'
 }

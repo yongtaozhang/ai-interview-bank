@@ -2358,10 +2358,12 @@ export const questions: InterviewQuestion[] = [
       },
     ],
     code: `function debounce(fn, wait, options = {}) {
+  // 用一个 timer 代表当前等待窗口，连续触发时不断重置它。
   let timer = null;
   const { leading = false } = options;
 
   function debounced(...args) {
+    // 保存调用现场，保证延迟执行时 this 和参数仍然正确。
     const context = this;
     const shouldCallNow = leading && timer === null;
 
@@ -2369,6 +2371,7 @@ export const questions: InterviewQuestion[] = [
 
     timer = setTimeout(() => {
       timer = null;
+      // 非 leading 模式下，只在用户停止触发后执行最后一次。
       if (!leading) fn.apply(context, args);
     }, wait);
 
@@ -2420,6 +2423,7 @@ export const questions: InterviewQuestion[] = [
       },
     ],
     code: `function throttle(fn, wait) {
+  // lastTime 记录上次真正执行时间，用来判断当前是否已经过了节流窗口。
   let lastTime = 0;
   let timer = null;
   let lastArgs;
@@ -2428,6 +2432,7 @@ export const questions: InterviewQuestion[] = [
   return function throttled(...args) {
     const now = Date.now();
     const remaining = wait - (now - lastTime);
+    // 保留最近一次调用现场，保证 trailing 执行的是最终状态。
     lastArgs = args;
     lastContext = this;
 
@@ -2483,7 +2488,9 @@ export const questions: InterviewQuestion[] = [
       },
     ],
     code: `function deepClone(value, cache = new WeakMap()) {
+  // 原始值没有引用关系，直接返回可以避免无意义递归。
   if (value === null || typeof value !== 'object') return value;
+  // WeakMap 记录已克隆对象，既能处理循环引用，也能保持共享引用结构。
   if (cache.has(value)) return cache.get(value);
 
   if (value instanceof Date) return new Date(value);
@@ -2491,6 +2498,7 @@ export const questions: InterviewQuestion[] = [
 
   if (value instanceof Map) {
     const result = new Map();
+    // 先放入缓存，再递归子项，避免 Map 内部自引用导致死循环。
     cache.set(value, result);
     value.forEach((v, k) => result.set(deepClone(k, cache), deepClone(v, cache)));
     return result;
@@ -2505,6 +2513,7 @@ export const questions: InterviewQuestion[] = [
 
   const result = Array.isArray(value) ? [] : {};
   cache.set(value, result);
+  // Reflect.ownKeys 能覆盖 Symbol key，比 Object.keys 更完整。
   Reflect.ownKeys(value).forEach((key) => {
     result[key] = deepClone(value[key], cache);
   });
@@ -2549,6 +2558,7 @@ export const questions: InterviewQuestion[] = [
     ],
     code: `function promiseAll(list) {
   return new Promise((resolve, reject) => {
+    // 统一转成数组，方便处理可迭代对象并按输入下标保存结果。
     const arr = Array.from(list);
     if (arr.length === 0) {
       resolve([]);
@@ -2559,6 +2569,7 @@ export const questions: InterviewQuestion[] = [
     let finished = 0;
 
     arr.forEach((item, index) => {
+      // Promise.resolve 兼容普通值，同时保持 Promise.all 的并发语义。
       Promise.resolve(item).then(
         (value) => {
           results[index] = value;
@@ -2610,6 +2621,7 @@ export const questions: InterviewQuestion[] = [
     code: `function promiseRace(list) {
   return new Promise((resolve, reject) => {
     for (const item of list) {
+      // 直接复用外层 resolve/reject，让第一个 settled 的任务决定最终状态。
       Promise.resolve(item).then(resolve, reject);
     }
   });
@@ -2660,6 +2672,7 @@ export const questions: InterviewQuestion[] = [
     let finished = 0;
 
     arr.forEach((item, index) => {
+      // 成功和失败都写入结果数组，因此不会像 Promise.all 一样短路。
       Promise.resolve(item).then(
         (value) => {
           results[index] = { status: 'fulfilled', value };
@@ -2668,6 +2681,7 @@ export const questions: InterviewQuestion[] = [
           results[index] = { status: 'rejected', reason };
         },
       ).finally(() => {
+        // 用统一完成计数判断所有任务是否都已经 settled。
         finished += 1;
         if (finished === arr.length) resolve(results);
       });
@@ -2713,6 +2727,7 @@ export const questions: InterviewQuestion[] = [
     ],
     code: `function limitRequest(tasks, limit) {
   return new Promise((resolve, reject) => {
+    // 结果数组按任务下标写入，避免并发完成顺序影响返回顺序。
     const results = new Array(tasks.length);
     let nextIndex = 0;
     let running = 0;
@@ -2723,6 +2738,7 @@ export const questions: InterviewQuestion[] = [
       if (rejected) return;
       if (finished === tasks.length) return resolve(results);
 
+      // 每次补齐空闲槽位，保证同时运行的任务数不超过 limit。
       while (running < limit && nextIndex < tasks.length) {
         const current = nextIndex++;
         running += 1;
@@ -2733,6 +2749,7 @@ export const questions: InterviewQuestion[] = [
             results[current] = value;
             finished += 1;
             running -= 1;
+            // 当前任务完成后继续调度下一个，形成队列推进。
             runNext();
           }, (error) => {
             rejected = true;
@@ -2783,6 +2800,7 @@ export const questions: InterviewQuestion[] = [
     ],
     code: `class EventEmitter {
   constructor() {
+    // 用 Map 保存事件名到监听器集合的关系，方便按事件快速触达。
     this.events = new Map();
   }
 
@@ -2802,9 +2820,11 @@ export const questions: InterviewQuestion[] = [
 
   once(type, listener) {
     const wrapper = (...args) => {
+      // once 的关键是先解绑再执行，避免监听器内部再次 emit 时重复触发。
       this.off(type, wrapper);
       listener(...args);
     };
+    // 保存原函数引用，让 off(type, 原函数) 也能移除 once 包装函数。
     wrapper.raw = listener;
     this.on(type, wrapper);
   }
@@ -2812,6 +2832,7 @@ export const questions: InterviewQuestion[] = [
   emit(type, ...args) {
     const listeners = this.events.get(type);
     if (!listeners) return;
+    // 复制快照后再遍历，避免执行过程中 on/off 修改集合影响本轮派发。
     [...listeners].forEach((listener) => listener(...args));
   }
 }`,
@@ -2855,12 +2876,15 @@ export const questions: InterviewQuestion[] = [
     code: `const identity = (value) => value;
 
 function compose(...fns) {
+  // 空组合返回 identity，让调用方不需要额外判断函数列表是否为空。
   if (fns.length === 0) return identity;
+  // compose 从右到左执行，符合数学函数组合和中间件包裹顺序。
   return (input) => fns.reduceRight((value, fn) => fn(value), input);
 }
 
 function pipe(...fns) {
   if (fns.length === 0) return identity;
+  // pipe 从左到右执行，更贴近日常数据处理流水线的阅读方向。
   return (input) => fns.reduce((value, fn) => fn(value), input);
 }`,
   },
@@ -2902,10 +2926,13 @@ function pipe(...fns) {
     ],
     code: `function curry(fn, ...presetArgs) {
   return function curried(...args) {
+    // 每次调用都合并历史参数和本次参数，实现分步收集。
     const allArgs = [...presetArgs, ...args];
     if (allArgs.length >= fn.length) {
+      // 参数收集足够后再执行原函数，同时保留当前 this。
       return fn.apply(this, allArgs);
     }
+    // 参数不够时继续返回新函数，把已收集参数封存在闭包里。
     return curry(fn, ...allArgs);
   };
 }`,
@@ -2951,6 +2978,7 @@ function pipe(...fns) {
 
   for (const item of array) {
     if (Array.isArray(item) && depth > 0) {
+      // 只有 depth 仍然允许时才递归展开，避免超过调用方期望层级。
       result.push(...flatten(item, depth - 1));
     } else {
       result.push(item);
@@ -3000,15 +3028,18 @@ function pipe(...fns) {
   const nodeMap = new Map();
   const roots = [];
 
+  // 第一遍先建索引，后续找父节点时才能做到 O(1)。
   for (const item of list) {
     nodeMap.set(item.id, { ...item, children: [] });
   }
 
+  // 第二遍再挂载父子关系，避免父节点出现在子节点之后时找不到。
   for (const item of list) {
     const node = nodeMap.get(item.id);
     const parent = nodeMap.get(item.parentId);
 
     if (item.parentId === rootParentId || !parent) {
+      // 父节点缺失时作为根节点处理，适合菜单类数据的容错展示。
       roots.push(node);
     } else {
       parent.children.push(node);
@@ -3057,12 +3088,14 @@ function pipe(...fns) {
     code: `class LRUCache {
   constructor(capacity) {
     this.capacity = capacity;
+    // Map 保持插入顺序，头部天然代表最久未使用的 key。
     this.cache = new Map();
   }
 
   get(key) {
     if (!this.cache.has(key)) return -1;
     const value = this.cache.get(key);
+    // 访问后删除再插入，把当前 key 移到末尾表示最近使用。
     this.cache.delete(key);
     this.cache.set(key, value);
     return value;
@@ -3074,6 +3107,7 @@ function pipe(...fns) {
     this.cache.set(key, value);
 
     if (this.cache.size > this.capacity) {
+      // 超出容量时淘汰 Map 头部，也就是最久未使用项。
       const oldestKey = this.cache.keys().next().value;
       this.cache.delete(oldestKey);
     }
@@ -3132,7 +3166,9 @@ async function retry(task, options = {}) {
       return await task();
     } catch (error) {
       lastError = error;
+      // 达到上限或业务判定不可重试时立即停止，避免错误请求无限放大。
       if (attempt === retries || !shouldRetry(error)) break;
+      // 指数退避能给服务恢复时间，也能减少瞬时重试风暴。
       await sleep(delay * Math.pow(2, attempt));
     }
   }
@@ -3177,10 +3213,12 @@ async function retry(task, options = {}) {
       },
     ],
     code: `function twoSum(nums, target) {
+  // Map 记录已访问数字的位置，把查找另一个数从 O(n) 降到 O(1)。
   const seen = new Map();
 
   for (let i = 0; i < nums.length; i += 1) {
     const need = target - nums[i];
+    // 先查再存，避免 target 是当前数字两倍时复用同一个下标。
     if (seen.has(need)) {
       return [seen.get(need), i];
     }
@@ -3227,6 +3265,7 @@ async function retry(task, options = {}) {
       },
     ],
     code: `function lengthOfLongestSubstring(s) {
+  // 记录字符最近位置，重复时可以直接跳过无效窗口。
   const lastIndex = new Map();
   let left = 0;
   let best = 0;
@@ -3234,6 +3273,7 @@ async function retry(task, options = {}) {
   for (let right = 0; right < s.length; right += 1) {
     const char = s[right];
     if (lastIndex.has(char) && lastIndex.get(char) >= left) {
+      // 左边界只向右移动，避免被窗口外的旧重复字符拉回去。
       left = lastIndex.get(char) + 1;
     }
     lastIndex.set(char, right);
@@ -3280,6 +3320,7 @@ async function retry(task, options = {}) {
       },
     ],
     code: `function isValidParentheses(s) {
+  // 右括号映射到期望的左括号，方便弹栈后直接比较。
   const pairs = {
     ')': '(',
     ']': '[',
@@ -3291,10 +3332,12 @@ async function retry(task, options = {}) {
     if (char === '(' || char === '[' || char === '{') {
       stack.push(char);
     } else if (stack.pop() !== pairs[char]) {
+      // 右括号必须匹配最近的左括号，不匹配可以提前失败。
       return false;
     }
   }
 
+  // 遍历结束后栈为空，才说明没有未闭合的左括号。
   return stack.length === 0;
 }`,
   },
@@ -3339,6 +3382,7 @@ async function retry(task, options = {}) {
   let current = head;
 
   while (current) {
+    // 先保存 next，再改指向，否则后续链表会丢失。
     const next = current.next;
     current.next = prev;
     prev = current;
@@ -3385,12 +3429,15 @@ async function retry(task, options = {}) {
       },
     ],
     code: `function binarySearch(nums, target) {
+  // 这里使用左右闭区间，所以循环条件必须允许 left === right。
   let left = 0;
   let right = nums.length - 1;
 
   while (left <= right) {
+    // 这种写法能避免其他语言里 left + right 可能溢出的问题。
     const mid = left + Math.floor((right - left) / 2);
     if (nums[mid] === target) return mid;
+    // 每次都排除 mid，保证区间持续收缩，不会死循环。
     if (nums[mid] < target) left = mid + 1;
     else right = mid - 1;
   }
@@ -3437,6 +3484,7 @@ async function retry(task, options = {}) {
     code: `function mergeIntervals(intervals) {
   if (intervals.length === 0) return [];
 
+  // 先按起点排序，后续只需要和结果集最后一个区间比较。
   const sorted = intervals.slice().sort((a, b) => a[0] - b[0]);
   const result = [sorted[0].slice()];
 
@@ -3445,6 +3493,7 @@ async function retry(task, options = {}) {
     const current = sorted[i];
 
     if (current[0] <= last[1]) {
+      // 有重叠时只扩展右边界，保持合并后的区间尽可能大。
       last[1] = Math.max(last[1], current[1]);
     } else {
       result.push(current.slice());
@@ -3494,9 +3543,11 @@ async function retry(task, options = {}) {
   if (!root) return [];
 
   const result = [];
+  // 队列保证先进先出，正好对应 BFS 的访问顺序。
   const queue = [root];
 
   while (queue.length > 0) {
+    // 先固定本层节点数，避免新入队的下一层节点混入当前层。
     const size = queue.length;
     const level = [];
 
@@ -3555,8 +3606,10 @@ async function retry(task, options = {}) {
 
   for (const item of items) {
     if (map.has(item.id)) {
+      // 重复 id 会让父子关系不确定，必须提前失败。
       throw new Error('duplicate id: ' + item.id);
     }
+    // 先复制节点并补 children，避免直接修改原始输入数据。
     map.set(item.id, { ...item, children: [] });
   }
 
@@ -3565,6 +3618,7 @@ async function retry(task, options = {}) {
     const parent = map.get(item.parentId);
 
     if (!item.parentId || !parent) {
+      // 父节点为空或缺失时放入根集合，具体是否报错可按业务调整。
       roots.push(node);
     } else {
       parent.children.push(node);

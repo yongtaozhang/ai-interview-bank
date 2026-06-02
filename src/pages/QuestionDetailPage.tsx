@@ -1,5 +1,13 @@
-import { ArrowLeft, ArrowRight, HelpCircle, ListChecks, MessageSquareText, Target } from 'lucide-react'
-import { Link, useParams } from 'react-router-dom'
+import {
+  ArrowLeft,
+  ArrowRight,
+  HelpCircle,
+  ListChecks,
+  MessageSquareText,
+  Target,
+} from 'lucide-react'
+import { Link, useLocation, useParams } from 'react-router-dom'
+import CodeBlock from '../components/common/CodeBlock'
 import CopyButton from '../components/common/CopyButton'
 import QuestionMeta from '../components/questions/QuestionMeta'
 import { questions } from '../data/questions'
@@ -80,14 +88,19 @@ function RelatedQuestions({ questions }: { questions: InterviewQuestion[] }) {
 
 export default function QuestionDetailPage() {
   const { id } = useParams()
+  const location = useLocation()
   const question = questions.find((item) => item.id === id)
+  const questionsPath = {
+    pathname: '/questions',
+    search: location.search,
+  }
 
   if (!question) {
     return (
       <section className="max-w-3xl">
         <Link
           className="inline-flex items-center gap-2 rounded-md text-sm font-semibold text-blue-700 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          to="/questions"
+          to={questionsPath}
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           返回题库
@@ -110,7 +123,7 @@ export default function QuestionDetailPage() {
     <section className="mx-auto max-w-4xl space-y-6">
       <Link
         className="inline-flex items-center gap-2 rounded-md text-sm font-semibold text-blue-700 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        to="/questions"
+        to={questionsPath}
       >
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         返回题库
@@ -151,6 +164,8 @@ export default function QuestionDetailPage() {
           </p>
         </div>
       </DetailSection>
+
+      {question.code ? <CodeBlock code={question.code} /> : null}
 
       <DetailSection icon={<ListChecks className="h-5 w-5" aria-hidden="true" />} title="关键点">
         <TextList items={question.keyPoints} />
