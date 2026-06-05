@@ -9,7 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(__dirname, '..')
 const questionsPath = path.join(rootDir, 'src/data/questions.ts')
 
-const EXPECTED_TOTAL = 96
+const EXPECTED_TOTAL = 116
 const EXPECTED_CATEGORY_COUNTS = {
   react: 18,
   typescript: 10,
@@ -18,6 +18,7 @@ const EXPECTED_CATEGORY_COUNTS = {
   browser: 8,
   handwriting: 14,
   algorithm: 8,
+  ai: 20,
   'ai-coding': 8,
   project: 10,
 }

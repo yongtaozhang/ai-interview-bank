@@ -11,6 +11,7 @@ export type QuestionCategory =
   | 'css'
   | 'security'
   | 'architecture'
+  | 'ai'
   | 'ai-coding'
   | 'project'
 
@@ -56,6 +57,7 @@ export const categoryLabels: Record<QuestionCategory, string> = {
   css: 'CSS 与布局',
   security: '前端安全',
   architecture: '架构与项目经验',
+  ai: 'AI 知识',
   'ai-coding': 'AI Coding',
   project: '项目设计',
 }
