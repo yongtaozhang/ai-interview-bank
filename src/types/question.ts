@@ -35,6 +35,7 @@ export interface InterviewQuestion {
   interviewerFocus: string[]
   answer: string
   oralAnswer: string
+  detailedAnswer?: string
   keyPoints: string[]
   followUps: FollowUpQuestion[]
   relatedQuestionIds?: string[]

@@ -1,6 +1,7 @@
 import {
   ArrowLeft,
   ArrowRight,
+  FileText,
   HelpCircle,
   ListChecks,
   MessageSquareText,
@@ -118,6 +119,7 @@ export default function QuestionDetailPage() {
   const relatedQuestions = (question.relatedQuestionIds ?? [])
     .map((relatedId) => questions.find((item) => item.id === relatedId))
     .filter((item): item is InterviewQuestion => Boolean(item))
+  const detailedAnswer = question.detailedAnswer?.trim()
 
   return (
     <section className="mx-auto max-w-4xl space-y-6">
@@ -164,6 +166,14 @@ export default function QuestionDetailPage() {
           </p>
         </div>
       </DetailSection>
+
+      {detailedAnswer ? (
+        <DetailSection icon={<FileText className="h-5 w-5" aria-hidden="true" />} title="详细答案">
+          <div className="whitespace-pre-line rounded-md border border-slate-200 bg-white p-4 text-base leading-8 text-slate-700">
+            {detailedAnswer}
+          </div>
+        </DetailSection>
+      ) : null}
 
       {question.code ? <CodeBlock code={question.code} /> : null}
 
